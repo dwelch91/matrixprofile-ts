@@ -23,16 +23,15 @@ def discords(mp, ex_zone, k=3):
     """
 
     k = len(mp) if k > len(mp) else k
-
     mp_current = np.copy(mp)
     d = np.zeros(k)
+
     for i in range(k):
         max_val = 0
         max_idx = sys.maxsize
         for j, val in enumerate(mp_current):
             if not np.isinf(val) and val > max_val:
-                max_val = val
-                max_idx = j
+                max_val, max_idx = val, j
 
         d[i] = max_idx
         mp_current[max([max_idx - ex_zone, 0]):min([max_idx + ex_zone, len(mp_current)])] = np.inf

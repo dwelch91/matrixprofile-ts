@@ -59,7 +59,7 @@ def _matrix_profile_sampling(ts_a, m, order_class, distance_profile_function, ts
     :param sampling:
     :return:
     """
-    order = order_class(len(ts_a) - m + 1)
+    order_ = order_class(len(ts_a) - m + 1)
 
     # Account for the case where ts_b is None (note that ts_b = None triggers a self matrix profile)
     if ts_b is None:
@@ -70,7 +70,7 @@ def _matrix_profile_sampling(ts_a, m, order_class, distance_profile_function, ts
         mp = np.full(len(ts_b) - m + 1, np.inf)
         mp_index = np.full(len(ts_b) - m + 1, np.inf)
 
-    idx = order.next()
+    idx = order_.next()
 
     # Define max numbers of iterations to sample
     iters = (len(ts_a) - m + 1) * sampling
@@ -78,17 +78,17 @@ def _matrix_profile_sampling(ts_a, m, order_class, distance_profile_function, ts
     iter_val = 0
 
     while iter_val < iters:
-        (distance_profile, query_segments_id) = distance_profile_function(ts_a, idx, m, ts_b)
+        distance_profile, query_segments_id = distance_profile_function(ts_a, idx, m, ts_b)
 
         # Check which of the indices have found a new minimum
-        idsToUpdate = distance_profile < mp
+        ids_to_update = distance_profile < mp
 
         # Update the Matrix Profile Index to indicate that the current index is the minimum location for the aforementioned indices
-        mp_index[idsToUpdate] = query_segments_id[idsToUpdate]
+        mp_index[ids_to_update] = query_segments_id[ids_to_update]
 
         # Update the matrix profile to include the new minimum values (where appropriate)
         mp = np.minimum(mp, distance_profile)
-        idx = order.next()
+        idx = order_.next()
 
         iter_val += 1
 
@@ -151,7 +151,7 @@ def _matrix_profile_stomp(ts_a, m, order_class, distance_profile_function, ts_b=
 
 def stampi_update(ts_a, m, mp, mp_index, newval, ts_b=None, distance_profile_function=mass_distance_profile):
     """
-    Updates the self-matched matrix profile for a time series TsA with the arrival of a new data point newval.
+    Updates the self-matched matrix profile for a time series Ts_a with the arrival of a new data point newval.
     Note that comparison of two separate time-series with new data arriving will be built later -> currently,
     ts_b should be set to ts_a
     :param ts_a:
@@ -174,7 +174,7 @@ def stampi_update(ts_a, m, mp, mp_index, newval, ts_b=None, distance_profile_fun
     # Determine new index value
     idx = len(ts_a_new) - m
 
-    (distance_profile, query_segments_id) = distance_profile_function(ts_a_new, idx, m, ts_b)
+    distance_profile, query_segments_id = distance_profile_function(ts_a_new, idx, m, ts_b)
 
     # Check which of the indices have found a new minimum
     ids_to_update = distance_profile < mp_new

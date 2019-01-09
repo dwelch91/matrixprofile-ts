@@ -24,10 +24,7 @@ class LinearOrder(Order):
 
     def next(self):
         self.idx += 1
-        if self.idx < self.m:
-            return self.idx
-        else:
-            return None
+        return self.idx if self.idx < self.m else None
 
 
 class RandomOrder(Order):
@@ -41,6 +38,5 @@ class RandomOrder(Order):
         self.idx += 1
         try:
             return self.indices[self.idx]
-
         except IndexError:
-            return None
+            return

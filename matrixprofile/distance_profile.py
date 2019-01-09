@@ -12,9 +12,14 @@ import numpy as np
 
 def naive_distance_profile(ts_a, idx, m, ts_b=None):
     """
-    Return the distance profile of a query within tsA against the time series tsB.
+    Return the distance profile of a query within ts_a against the time series ts_b.
     Uses the naive all-pairs comparison. idx defines the starting index of the query
-    within tsA and m is the length of the query.
+    within ts_a and m is the length of the query.
+    :param ts_a: First timeseries
+    :param idx: Starting index
+    :param m: Length of query
+    :param ts_b: Second timeseries
+    :return: Distance profile
     """
 
     self_join = False
@@ -33,7 +38,6 @@ def naive_distance_profile(ts_a, idx, m, ts_b=None):
 
     if self_join:
         trivial_match_range = (int(max(0, idx - np.round(m / 2, 0))), int(min(idx + np.round(m / 2 + 1, 0), n)))
-
         dp[trivial_match_range[0]: trivial_match_range[1]] = np.inf
 
     return dp, np.full(n - m + 1, idx, dtype=float)
@@ -41,9 +45,14 @@ def naive_distance_profile(ts_a, idx, m, ts_b=None):
 
 def mass_distance_profile(ts_a, idx, m, ts_b=None):
     """
-    Return the distance profile of a query within tsA against the time series tsB.
+    Return the distance profile of a query within ts_a against the time series ts_b.
     Uses the more efficient MASS comparison. idx defines the starting index of the query
-    within tsA and m is the length of the query.
+    within ts_a and m is the length of the query.
+    :param ts_a: First timeseries
+    :param idx: Starting index
+    :param m:  Query length
+    :param ts_b: Second timeseries
+    :return: Distance profile
     """
 
     self_join = False
@@ -64,18 +73,18 @@ def mass_distance_profile(ts_a, idx, m, ts_b=None):
 
 def stomp_distance_profile(ts_a, idx, m, ts_b, dot_first, dp, mean, std):
     """
-    Return the distance profile of a query within tsA against the time series tsB.
+    Return the distance profile of a query within ts_a against the time series ts_b.
     Uses the more efficient MASS comparison. idx defines the starting index of the
-    query within tsA and m is the length of the query.
-    :param ts_a:
-    :param idx:
-    :param m:
-    :param ts_b:
+    query within ts_a and m is the length of the query.
+    :param ts_a: First timeseries
+    :param idx: Starting index
+    :param m: Query length
+    :param ts_b: Second timeseries
     :param dot_first:
     :param dp:
     :param mean:
     :param std:
-    :return:
+    :return: Distance profile
     """
 
     self_join = False
