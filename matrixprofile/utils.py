@@ -4,14 +4,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-range = getattr(__builtins__, 'xrange', range)
-# end of py2 compatability boilerplate
-
 import numpy as np
 import numpy.fft as fft
 
-def zNormalize(ts):
-    """Return a z-normalized version of the time series"""
+
+def z_normalize(ts):
+    """
+    Return a z-normalized version of the time series
+    :param ts:
+    :return:
+    """
 
     ts -= np.mean(ts)
     std = np.std(ts)
@@ -23,132 +25,188 @@ def zNormalize(ts):
 
     return ts
 
-def zNormalizeEuclidian(tsA,tsB):
-    """Return the z-normalized Euclidian distance between the time series tsA and tsB"""
 
-    if len(tsA) != len(tsB):
+def z_normalize_euclidian(ts_a, ts_b):
+    """
+    Return the z-normalized Euclidian distance between the time series ts_a and ts_b
+    :param ts_a:
+    :param ts_b:
+    :return:
+    """
+
+    if len(ts_a) != len(ts_b):
         raise ValueError("tsA and tsB must be the same length")
 
-    return np.linalg.norm(zNormalize(tsA.astype("float64")) - zNormalize(tsB.astype("float64")))
+    return np.linalg.norm(z_normalize(ts_a.astype("float64")) - z_normalize(ts_b.astype("float64")))
 
-def movmeanstd(ts,m):
-    """Calculate the mean and standard deviation within a moving window of width m passing across the time series ts"""
+
+def mov_mean_std(ts, m):
+    """
+    Calculate the mean and standard deviation within a moving window of width m passing across the time series ts
+    :param ts:
+    :param m:
+    :return:
+    """
+
     if m <= 1:
         raise ValueError("Query length must be longer than one")
 
     ts = ts.astype("float")
-    #Add zero to the beginning of the cumsum of ts
-    s = np.insert(np.cumsum(ts),0,0)
-    #Add zero to the beginning of the cumsum of ts ** 2
-    sSq = np.insert(np.cumsum(ts ** 2),0,0)
-    segSum = s[m:] - s[:-m]
-    segSumSq = sSq[m:] -sSq[:-m]
+    # Add zero to the beginning of the cumsum of ts
+    s = np.insert(np.cumsum(ts), 0, 0)
+    # Add zero to the beginning of the cumsum of ts ** 2
+    s_sq = np.insert(np.cumsum(ts ** 2), 0, 0)
+    seg_sum = s[m:] - s[:-m]
+    seg_sum_sq = s_sq[m:] - s_sq[:-m]
 
-    movmean = segSum/m
-    movstd = np.sqrt(segSumSq / m - (segSum/m) ** 2)
+    movmean = seg_sum / m
+    movstd = np.sqrt(seg_sum_sq / m - (seg_sum / m) ** 2)
 
-    return [movmean,movstd]
+    return [movmean, movstd]
 
-def movstd(ts,m):
-    """Calculate the standard deviation within a moving window of width m passing across the time series ts"""
+
+def mov_std(ts, m):
+    """
+    Calculate the standard deviation within a moving window of width m passing across the time series ts
+    :param ts:
+    :param m:
+    :return:
+    """
+
     if m <= 1:
         raise ValueError("Query length must be longer than one")
 
     ts = ts.astype("float")
-    #Add zero to the beginning of the cumsum of ts
-    s = np.insert(np.cumsum(ts),0,0)
-    #Add zero to the beginning of the cumsum of ts ** 2
-    sSq = np.insert(np.cumsum(ts ** 2),0,0)
-    segSum = s[m:] - s[:-m]
-    segSumSq = sSq[m:] -sSq[:-m]
+    # Add zero to the beginning of the cumsum of ts
+    s = np.insert(np.cumsum(ts), 0, 0)
+    # Add zero to the beginning of the cumsum of ts ** 2
+    s_sq = np.insert(np.cumsum(ts ** 2), 0, 0)
+    seg_sum = s[m:] - s[:-m]
+    seg_sum_sq = s_sq[m:] - s_sq[:-m]
 
-    return np.sqrt(segSumSq / m - (segSum/m) ** 2)
+    return np.sqrt(seg_sum_sq / m - (seg_sum / m) ** 2)
 
-def slidingDotProduct(query,ts):
-    """Calculate the dot product between the query and all subsequences of length(query) in the timeseries ts. Note that we use Numpy's rfft method instead of fft."""
+
+def sliding_dot_product(query, ts):
+    """
+    Calculate the dot product between the query and all subsequences of length(query)
+    in the timeseries ts. Note that we use Numpy's rfft method instead of fft.
+    :param query:
+    :param ts:
+    :return:
+    """
 
     m = len(query)
     n = len(ts)
 
-
-    #If length is odd, zero-pad time time series
+    # If length is odd, zero-pad time time series
     ts_add = 0
-    if n%2 ==1:
-        ts = np.insert(ts,0,0)
+    if n % 2 == 1:
+        ts = np.insert(ts, 0, 0)
         ts_add = 1
 
     q_add = 0
-    #If length is odd, zero-pad query
-    if m%2 == 1:
-        query = np.insert(query,0,0)
+    # If length is odd, zero-pad query
+    if m % 2 == 1:
+        query = np.insert(query, 0, 0)
         q_add = 1
 
-    #This reverses the array
+    # This reverses the array
     query = query[::-1]
 
+    query = np.pad(query, (0, n - m + ts_add - q_add), 'constant')
 
-    query = np.pad(query,(0,n-m+ts_add-q_add),'constant')
+    # Determine trim length for dot product. Note that zero-padding of the query has no effect on array length, which is solely determined by the longest vector
+    trim = m - 1 + ts_add
 
-    #Determine trim length for dot product. Note that zero-padding of the query has no effect on array length, which is solely determined by the longest vector
-    trim = m-1+ts_add
+    dot_product = fft.irfft(fft.rfft(ts) * fft.rfft(query))
 
-    dot_product = fft.irfft(fft.rfft(ts)*fft.rfft(query))
+    # Note that we only care about the dot product results from index m-1 onwards, as the first few values aren't true dot products (due to the way the FFT works for dot products)
+    return dot_product[trim:]
 
 
-    #Note that we only care about the dot product results from index m-1 onwards, as the first few values aren't true dot products (due to the way the FFT works for dot products)
-    return dot_product[trim :]
+def dot_product_stomp(ts, m, dot_first, dot_prev, order):
+    """
+    Updates the sliding dot product for time series ts from the previous dot product dot_prev.
+    QT(1,1) is pulled from the initial dot product as dot_first
+    :param ts:
+    :param m:
+    :param dot_first:
+    :param dot_prev:
+    :param order:
+    :return:
+    """
 
-def DotProductStomp(ts,m,dot_first,dot_prev,order):
-    """Updates the sliding dot product for time series ts from the previous dot product dot_prev. QT(1,1) is pulled from the initial dot product as dot_first"""
+    l = len(ts) - m + 1
+    dot = np.roll(dot_prev, 1)
 
-    l = len(ts)-m+1
-    dot = np.roll(dot_prev,1)
+    dot += ts[order + m - 1] * ts[m - 1:l + m] - ts[order - 1] * np.roll(ts[:l], 1)
 
-    dot += ts[order+m-1]*ts[m-1:l+m]-ts[order-1]*np.roll(ts[:l],1)
-
-    #Update the first value in the dot product array
+    # Update the first value in the dot product array
     dot[0] = dot_first[order]
 
     return dot
 
 
-def mass(query,ts):
-    """Calculates Mueen's ultra-fast Algorithm for Similarity Search (MASS) between a query and timeseries. MASS is a Euclidian distance similarity search algorithm. Note that we are returning the square of MASS."""
+def mass(query, ts):
+    """
+    Calculates Mueen's ultra-fast Algorithm for Similarity Search (MASS) between a query and timeseries.
+    MASS is a Euclidian distance similarity search algorithm. Note that we are returning the square of MASS.
+    :param query:
+    :param ts:
+    :return:
+    """
 
-    #query_normalized = zNormalize(np.copy(query))
+    # query_normalized = zNormalize(np.copy(query))
     m = len(query)
     q_mean = np.mean(query)
     q_std = np.std(query)
-    mean, std = movmeanstd(ts,m)
-    dot = slidingDotProduct(query,ts)
+    mean, std = mov_mean_std(ts, m)
+    dot = sliding_dot_product(query, ts)
 
-    #res = np.sqrt(2*m*(1-(dot-m*mean*q_mean)/(m*std*q_std)))
-    res = 2*m*(1-(dot-m*mean*q_mean)/(m*std*q_std))
-
+    # res = np.sqrt(2*m*(1-(dot-m*mean*q_mean)/(m*std*q_std)))
+    res = 2 * m * (1 - (dot - m * mean * q_mean) / (m * std * q_std))
 
     return res
 
-def massStomp(query,ts,dot_first,dot_prev,index,mean,std):
-    """Calculates Mueen's ultra-fast Algorithm for Similarity Search (MASS) between a query and timeseries using the STOMP dot product speedup. Note that we are returning the square of MASS."""
+
+def mass_stomp(query, ts, dot_first, dot_prev, index, mean, std):
+    """
+    Calculates Mueen's ultra-fast Algorithm for Similarity Search (MASS) between a query and timeseries
+    using the STOMP dot product speedup. Note that we are returning the square of MASS.
+    :param query:
+    :param ts:
+    :param dot_first:
+    :param dot_prev:
+    :param index:
+    :param mean:
+    :param std:
+    :return:
+    """
     m = len(query)
-    dot = DotProductStomp(ts,m,dot_first,dot_prev,index)
+    dot = dot_product_stomp(ts, m, dot_first, dot_prev, index)
 
-    #Return both the MASS calcuation and the dot product
+    # Return both the MASS calculation and the dot product
 
-    #res = np.sqrt(2*m*(1-(dot-m*mean[index]*mean)/(m*std[index]*std)))
-    res = 2*m*(1-(dot-m*mean[index]*mean)/(m*std[index]*std))
-    #res[np.isnan(res)] = 0.0
+    # res = np.sqrt(2*m*(1-(dot-m*mean[index]*mean)/(m*std[index]*std)))
+    res = 2 * m * (1 - (dot - m * mean[index] * mean) / (m * std[index] * std))
+    # res[np.isnan(res)] = 0.0
 
     return res, dot
 
 
-def apply_av(mp,av=[1.0]):
-    """Applies annotation vector 'av' to the original matrix profile and matrix profile index contained in tuple mp, and returns the corrected MP/MPI as a new tuple"""
+def apply_av(mp, av=None):
+    """
+    Applies annotation vector 'av' to the original matrix profile and matrix profile index contained in tuple mp,
+    and returns the corrected MP/MPI as a new tuple
+    :param mp:
+    :param av:
+    :return:
+    """
+    av = [1.0] if av is None else av
 
     if len(mp[0]) != len(av):
         raise ValueError("Annotation Vector must be the same length as the matrix profile")
 
-    else:
-        mp_corrected = mp[0]*np.array(av)
-
-        return mp_corrected
+    mp_corrected = mp[0] * np.array(av)
+    return mp_corrected

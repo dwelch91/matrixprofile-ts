@@ -12,8 +12,8 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/target/matrixprofile-ts",
-    packages = ['matrixprofile'],
-    install_requires=['numpy'],
+    packages=['matrixprofile'],
+    install_requires=['numpy', 'six'],
     classifiers=[
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
